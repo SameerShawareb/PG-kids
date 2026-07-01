@@ -21,7 +21,6 @@ A full-stack, role-based platform for managing and consuming children’s video 
 - [Security & Safety Highlights](#security--safety-highlights)
 - [Troubleshooting](#troubleshooting)
 - [Contributors](#contributors)
-- [GitHub Publishing Workflow](#github-publishing-workflow)
 
 ---
 
@@ -324,26 +323,3 @@ Special thanks to the team members who contributed to building this project:
 - **[Fadi Abbasi](https://github.com/f4di1)**
 - **Wadeesmirat**
 - **[Deya Alaydi](https://github.com/aiden7di7-svg)**
-
----
-
-## GitHub Publishing Workflow
-
-I can prepare and edit files locally, but pushing to GitHub must be done from your machine/account.
-
-After reviewing this README, run:
-
-```bash
-git add README.md
-git commit -m "docs: rewrite README with detailed professional project documentation"
-git push origin <your-branch-name>
-```
-
-If you want, I can also prepare:
-- a polished **Arabic README** (`README.ar.md`),
-- architecture diagrams (Mermaid),
-- and a contributor guide (`CONTRIBUTING.md`).
-
----
-
-If you'd like, I can now create a **short executive one-page README version** for stakeholders, and keep this one as the technical reference.
