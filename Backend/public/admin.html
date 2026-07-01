@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PG Kids Admin Panel</title>
+  <style>
+    :root { color-scheme: dark; --bg:#071326; --card:#101f3a; --line:#243a62; --text:#f5f7fb; --muted:#a9b6ca; --accent:#42d7d0; --danger:#ff6b6b; --ok:#7bd88f; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Tahoma, Arial, sans-serif; background: radial-gradient(circle at top left,#17335f,var(--bg)); color:var(--text); }
+    header { padding:24px; border-bottom:1px solid var(--line); background:rgba(7,19,38,.86); position:sticky; top:0; z-index:2; backdrop-filter:blur(14px); }
+    h1, h2, h3 { margin:0 0 12px; }
+    main { width:min(1220px, 94vw); margin:24px auto 64px; display:grid; gap:20px; }
+    .brand { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand small { color:var(--muted); display:block; margin-top:4px; }
+    .card { background:rgba(16,31,58,.92); border:1px solid var(--line); border-radius:18px; padding:18px; box-shadow:0 16px 46px rgba(0,0,0,.24); }
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:12px; }
+    .col-3 { grid-column: span 3; } .col-4 { grid-column: span 4; } .col-6 { grid-column: span 6; } .col-8 { grid-column: span 8; } .col-12 { grid-column: span 12; }
+    label { display:grid; gap:6px; color:var(--muted); font-size:13px; }
+    input, select, textarea { width:100%; border:1px solid var(--line); border-radius:12px; padding:11px 12px; background:#071326; color:var(--text); outline:none; }
+    textarea { min-height:76px; resize:vertical; }
+    button { border:0; border-radius:12px; padding:11px 14px; background:var(--accent); color:#02131b; font-weight:800; cursor:pointer; }
+    button.secondary { background:#253b63; color:var(--text); }
+    button.danger { background:var(--danger); color:#1b0202; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .tabs { display:flex; gap:8px; flex-wrap:wrap; }
+    .tab { background:#152846; color:var(--text); }
+    .tab.active { background:var(--accent); color:#02131b; }
+    .status { min-height:22px; color:var(--muted); }
+    .status.ok { color:var(--ok); } .status.bad { color:var(--danger); }
+    table { width:100%; border-collapse:collapse; margin-top:12px; direction:ltr; }
+    th, td { text-align:left; padding:10px; border-bottom:1px solid var(--line); vertical-align:top; font-size:14px; }
+    th { color:var(--muted); font-weight:700; }
+    .pill { display:inline-flex; border-radius:999px; padding:4px 9px; font-size:12px; background:#263b62; color:var(--text); }
+    .pill.ok { background:rgba(123,216,143,.16); color:var(--ok); } .pill.bad { background:rgba(255,107,107,.16); color:var(--danger); }
+    progress { width:100%; height:14px; accent-color:var(--accent); }
+    .hidden { display:none; }
+    @media (max-width: 800px) { .col-3,.col-4,.col-6,.col-8 { grid-column: span 12; } table { display:block; overflow-x:auto; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div>
+        <h1>PG Kids Admin Panel</h1>
+        <small>لوحة إدارة حقيقية للاشتراكات، رفع المحتوى، وتنظيم المحتوى</small>
+      </div>
+      <div class="actions">
+        <button id="logoutBtn" class="secondary">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card" id="loginCard">
+      <h2>تسجيل الدخول / Login</h2>
+      <form id="loginForm" class="grid">
+        <label class="col-4">Email<input name="email" type="email" required /></label>
+        <label class="col-4">Password<input name="password" type="password" required /></label>
+        <div class="col-4 actions" style="align-self:end"><button type="submit">Login</button></div>
+      </form>
+      <p class="status" id="loginStatus"></p>
+    </section>
+
+    <section class="card hidden" id="appCard">
+      <div class="tabs">
+        <button class="tab active" data-panel="plansPanel">Subscription Plans / خطط الاشتراك</button>
+        <button class="tab" data-panel="uploadPanel">Content Upload / رفع المحتوى</button>
+        <button class="tab" data-panel="organizationPanel">Content Organization / تنظيم المحتوى</button>
+      </div>
+    </section>
+
+    <section class="card panel hidden" id="plansPanel">
+      <h2>Subscription Plans / خطط الاشتراك</h2>
+      <form id="planForm" class="grid">
+        <input type="hidden" name="planId" />
+        <label class="col-3">Plan Name<input name="name" required placeholder="Premium" /></label>
+        <label class="col-3">Price<input name="price" type="number" min="0" step="0.01" required /></label>
+        <label class="col-3">Billing Cycle<select name="billing_cycle" required><option value="monthly">Monthly</option><option value="annual">Annual</option><option value="one-time">One-time</option><option value="custom">Custom</option></select></label>
+        <label class="col-3">Duration Days<input name="duration_days" type="number" min="1" /></label>
+        <label class="col-3">Stream Limit<input name="stream_limit" type="number" min="1" /></label>
+        <label class="col-3">Quality Limit<select name="quality_limit"><option value="">None</option><option value="basic">Basic</option><option value="standard">Standard</option><option value="premium">Premium</option><option value="4k">4K</option></select></label>
+        <label class="col-3">Access Level<input name="access_level" placeholder="basic / premium" /></label>
+        <label class="col-3">Trial Days<input name="trial_period_days" type="number" min="0" /></label>
+        <label class="col-12">Description<textarea name="description"></textarea></label>
+        <div class="col-12 actions"><button type="submit">Save Plan</button><button type="button" class="secondary" id="resetPlanForm">New Plan</button><button type="button" class="secondary" id="refreshPlans">Refresh</button></div>
+      </form>
+      <p class="status" id="planStatus"></p>
+      <div id="plansTable"></div>
+    </section>
+
+    <section class="card panel hidden" id="uploadPanel">
+      <h2>Content Upload / رفع الفيديو أو الصوت</h2>
+      <form id="uploadForm" class="grid">
+        <label class="col-4">Title<input name="title" required /></label>
+        <label class="col-4">Type<select name="type" id="contentTypeSelect" required><option value="video">Video</option><option value="audio">Audio</option></select></label>
+        <label class="col-4">Age Group<select name="age_group"><option value="all">All</option><option value="2-5">2-5</option><option value="3-5">3-5</option><option value="6-8">6-8</option><option value="9-12">9-12</option></select></label>
+        <label class="col-4">Category<select name="categoryId" id="uploadCategory" required></select></label>
+        <label class="col-4">Series<select name="seriesId" id="uploadSeries"><option value="">Standalone</option></select></label>
+        <label class="col-4">Season<select name="seasonId" id="uploadSeason"><option value="">No season</option></select></label>
+        <label class="col-3">Episode Number<input name="episode_number" type="number" min="1" /></label>
+        <label class="col-3">Duration Seconds<input name="duration_seconds" type="number" min="1" /></label>
+        <label class="col-3">Access Level<input name="access_level" /></label>
+        <label class="col-3">Quality Level<input name="quality_level" /></label>
+        <label class="col-6">Media File<input name="file" id="mediaFileInput" type="file" accept=".mp4,.mov,.webm,.mkv,.mp3,.wav,.m4a,.aac,video/mp4,video/quicktime,video/webm,video/x-matroska,audio/mpeg,audio/wav,audio/mp4,audio/x-m4a,audio/aac" required /></label>
+        <p class="col-12 status" id="uploadHelp">Video formats: mp4, mov, webm, mkv. Audio formats: mp3, wav, m4a, aac.</p>
+        <label class="col-6">Thumbnail<input name="thumbnail" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+        <label class="col-12">Description<textarea name="description"></textarea></label>
+        <label class="col-3">Publish Now<select name="is_published"><option value="false">No</option><option value="true">Yes</option></select></label>
+        <div class="col-12 actions"><button type="submit">Upload Content</button><button type="button" class="secondary" id="refreshContent">Refresh Content</button></div>
+      </form>
+      <progress id="uploadProgress" value="0" max="100"></progress>
+      <p class="status" id="uploadStatus"></p>
+      <div id="contentTable"></div>
+    </section>
+
+    <section class="card panel hidden" id="organizationPanel">
+      <h2>Content Organization / تنظيم المحتوى</h2>
+      <div class="grid">
+        <form id="categoryForm" class="col-4 card">
+          <h3>Category</h3>
+          <label>Name<input name="name" required /></label><br />
+          <label>Description<textarea name="description"></textarea></label><br />
+          <button type="submit">Create Category</button>
+        </form>
+        <form id="seriesForm" class="col-4 card">
+          <h3>Series</h3>
+          <label>Category<select name="categoryId" id="seriesCategory" required></select></label><br />
+          <label>Title<input name="title" required /></label><br />
+          <label>Description<textarea name="description"></textarea></label><br />
+          <button type="submit">Create Series</button>
+        </form>
+        <form id="seasonForm" class="col-4 card">
+          <h3>Season</h3>
+          <label>Series<select name="seriesId" id="seasonSeries" required></select></label><br />
+          <label>Title<input name="title" /></label><br />
+          <label>Season Number<input name="season_number" type="number" min="1" required /></label><br />
+          <button type="submit">Create Season</button>
+        </form>
+        <form id="episodeForm" class="col-6 card">
+          <h3>Episode</h3>
+          <label>Season<select name="seasonId" id="episodeSeason" required></select></label><br />
+          <label>Linked Content<select name="contentId" id="episodeContent"><option value="">No linked content</option></select></label><br />
+          <label>Title<input name="title" required /></label><br />
+          <label>Episode Number<input name="episode_number" type="number" min="1" required /></label><br />
+          <button type="submit">Create Episode</button>
+        </form>
+        <form id="assignForm" class="col-6 card">
+          <h3>Assign Content</h3>
+          <label>Content<select name="contentId" id="assignContent" required></select></label><br />
+          <label>Category<select name="categoryId" id="assignCategory" required></select></label><br />
+          <label>Series<select name="seriesId" id="assignSeries"><option value="">Standalone</option></select></label><br />
+          <label>Season<select name="seasonId" id="assignSeason"><option value="">No season</option></select></label><br />
+          <label>Episode Number<input name="episode_number" type="number" min="1" /></label><br />
+          <button type="submit">Update Assignment</button>
+        </form>
+      </div>
+      <p class="status" id="organizationStatus"></p>
+      <div id="organizationTables"></div>
+    </section>
+  </main>
+
+<script>
+const API = '';
+let state = { token: localStorage.getItem('pgkids_token') || '', user: null, plans: [], categories: [], series: [], seasons: [], content: [] };
+
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>'\"]/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\'':'&#39;', '"':'&quot;' }[ch]));
+const status = (id, msg, ok = true) => { const el = $(id); el.textContent = msg || ''; el.className = `status ${ok ? 'ok' : 'bad'}`; };
+const mediaExtensions = { video: ['mp4', 'mov', 'webm', 'mkv'], audio: ['mp3', 'wav', 'm4a', 'aac'] };
+const detectMediaTypeFromName = (name = '') => {
+  const ext = String(name).split('.').pop()?.toLowerCase();
+  if (mediaExtensions.video.includes(ext)) return 'video';
+  if (mediaExtensions.audio.includes(ext)) return 'audio';
+  return '';
+};
+function updateUploadHelp() {
+  const type = $('contentTypeSelect')?.value || 'video';
+  const formats = mediaExtensions[type].join(', ');
+  status('uploadHelp', `${type === 'video' ? 'Video' : 'Audio'} selected. Allowed formats: ${formats}.`, true);
+}
+const authHeaders = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` });
+const formJson = (form) => Object.fromEntries(new FormData(form).entries());
+
+async function api(path, options = {}) {
+  const res = await fetch(API + path, options);
+  const data = await res.json().catch(() => ({ success:false, message:'Invalid server response' }));
+  if (!res.ok || data.success === false) throw new Error(data.message || 'Request failed');
+  return data;
+}
+
+function configureRoleUi() {
+  const isAdmin = state.user?.role === 'admin';
+  document.querySelectorAll('[data-panel=plansPanel],[data-panel=organizationPanel]').forEach(el => el.classList.toggle('hidden', !isAdmin));
+}
+
+function openPanel(panelId) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.panel === panelId));
+  document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+  $(panelId).classList.remove('hidden');
+}
+
+function setAppVisible(visible) {
+  $('loginCard').classList.toggle('hidden', visible);
+  $('appCard').classList.toggle('hidden', !visible);
+  document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+  if (visible) {
+    configureRoleUi();
+    openPanel(state.user?.role === 'admin' ? 'plansPanel' : 'uploadPanel');
+  }
+}
+
+function renderTable(target, columns, rows, actions = null) {
+  if (!rows.length) { $(target).innerHTML = '<p class="status">No records yet.</p>'; return; }
+  const head = columns.map(c => `<th>${escapeHtml(c.label)}</th>`).join('') + (actions ? '<th>Actions</th>' : '');
+  const body = rows.map(r => {
+    const cells = columns.map(c => {
+      const value = c.render ? c.render(r) : (r[c.key] ?? '');
+      return `<td>${escapeHtml(value)}</td>`;
+    }).join('');
+    return `<tr>${cells}${actions ? `<td>${actions(r)}</td>` : ''}</tr>`;
+  }).join('');
+  $(target).innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+async function bootstrap() {
+  if (!state.token) return setAppVisible(false);
+  try {
+    const me = await api('/api/auth/me', { headers: authHeaders() });
+    state.user = me.data.user;
+    setAppVisible(true);
+    await refreshAll();
+  } catch (err) {
+    localStorage.removeItem('pgkids_token'); state.token = ''; setAppVisible(false);
+  }
+}
+
+async function refreshAll() {
+  await Promise.allSettled([loadPlans(), loadOrganization(), loadContent()]);
+}
+
+async function loadPlans() {
+  const data = await api('/api/plans/admin', { headers: authHeaders() });
+  state.plans = data.data;
+  renderTable('plansTable', [
+    {label:'Name', key:'name'}, {label:'Price', render:r=>`${r.price} / ${r.billing_cycle}`},
+    {label:'Streams', key:'stream_limit'}, {label:'Quality', key:'quality_limit'},
+    {label:'Status', render:r=>r.is_active ? 'Active' : 'Inactive'}
+  ], state.plans, r => `<button onclick="editPlanById('${r.id}')">Edit</button> <button class="${r.is_active ? 'danger':'secondary'}" onclick="setPlanStatus('${r.id}', ${!r.is_active})">${r.is_active ? 'Deactivate':'Activate'}</button> <button class="danger" onclick="archivePlan('${r.id}')">Archive</button>`);
+}
+
+window.editPlanById = (planId) => {
+  const plan = state.plans.find(item => item.id === planId);
+  if (!plan) return;
+  const f = $('planForm');
+  Object.entries(plan).forEach(([k,v]) => { if (f.elements[k]) f.elements[k].value = v ?? ''; });
+  f.elements.planId.value = plan.id;
+  status('planStatus', `Editing plan: ${plan.name}`);
+};
+
+window.setPlanStatus = async (id, is_active) => {
+  try { await api(`/api/plans/admin/${id}/status`, { method:'PATCH', headers:authHeaders(), body:JSON.stringify({ is_active }) }); await loadPlans(); status('planStatus','Plan status updated'); }
+  catch (err) { status('planStatus', err.message, false); }
+};
+
+window.archivePlan = async (id) => {
+  if (!confirm('Archive this plan? Existing active subscribers will be preserved.')) return;
+  try { await api(`/api/plans/admin/${id}`, { method:'DELETE', headers:authHeaders() }); await loadPlans(); status('planStatus','Plan archived'); }
+  catch (err) { status('planStatus', err.message, false); }
+};
+
+async function loadOrganization() {
+  const [categories, series, seasons, episodes] = await Promise.all([
+    api('/api/admin/organization/categories', { headers:authHeaders() }),
+    api('/api/admin/organization/series', { headers:authHeaders() }),
+    api('/api/admin/organization/seasons', { headers:authHeaders() }),
+    api('/api/admin/organization/episodes', { headers:authHeaders() })
+  ]);
+  state.categories = categories.data; state.series = series.data; state.seasons = seasons.data;
+  fillSelects();
+  $('organizationTables').innerHTML = '<h3>Categories</h3><div id="catTable"></div><h3>Series</h3><div id="serTable"></div><h3>Seasons</h3><div id="seaTable"></div><h3>Episodes</h3><div id="epiTable"></div>';
+  renderTable('catTable', [{label:'Name',key:'name'}, {label:'Active',render:r=>r.is_active?'Yes':'No'}], state.categories, r=>`<button class="${r.is_active?'danger':'secondary'}" onclick="categoryStatus('${r.id}', ${!r.is_active})">${r.is_active?'Deactivate':'Activate'}</button>`);
+  renderTable('serTable', [{label:'Title',key:'title'}, {label:'Category',render:r=>r.category?.name || ''}, {label:'Active',render:r=>r.is_active?'Yes':'No'}], state.series, r=>`<button class="${r.is_active?'danger':'secondary'}" onclick="seriesStatus('${r.id}', ${!r.is_active})">${r.is_active?'Deactivate':'Activate'}</button>`);
+  renderTable('seaTable', [{label:'Title',key:'title'}, {label:'No.',key:'season_number'}, {label:'Series',render:r=>r.series?.title || ''}], state.seasons, r=>`<button class="${r.is_active?'danger':'secondary'}" onclick="seasonStatus('${r.id}', ${!r.is_active})">${r.is_active?'Deactivate':'Activate'}</button>`);
+  renderTable('epiTable', [{label:'Title',key:'title'}, {label:'No.',key:'episode_number'}, {label:'Season',render:r=>r.season?.title || ''}, {label:'Content',render:r=>r.content?.title || ''}], episodes.data);
+}
+
+function option(value, label) { return `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`; }
+function fillSelects() {
+  const catOptions = state.categories.filter(c=>c.is_active).map(c=>option(c.id, c.name)).join('');
+  const seriesOptions = '<option value="">Standalone</option>' + state.series.filter(s=>s.is_active).map(s=>option(s.id, s.title)).join('');
+  const seasonOptions = '<option value="">No season</option>' + state.seasons.filter(s=>s.is_active).map(s=>option(s.id, `${s.title} (#${s.season_number})`)).join('');
+  ['uploadCategory','seriesCategory','assignCategory'].forEach(id => { if ($(id)) $(id).innerHTML = catOptions; });
+  ['uploadSeries','seasonSeries','assignSeries'].forEach(id => { if ($(id)) $(id).innerHTML = seriesOptions; });
+  ['uploadSeason','episodeSeason','assignSeason'].forEach(id => { if ($(id)) $(id).innerHTML = seasonOptions; });
+  const contentOptions = state.content.map(c=>option(c.id, c.title)).join('');
+  ['episodeContent'].forEach(id => { if ($(id)) $(id).innerHTML = '<option value="">No linked content</option>' + contentOptions; });
+  ['assignContent'].forEach(id => { if ($(id)) $(id).innerHTML = contentOptions; });
+}
+
+async function loadContent() {
+  const data = await api('/api/admin/content', { headers:authHeaders() });
+  state.content = data.data;
+  fillSelects();
+  renderTable('contentTable', [
+    {label:'Title',key:'title'}, {label:'Type',key:'type'}, {label:'Category',render:r=>r.organization?.category?.name || r.category || ''},
+    {label:'Series',render:r=>r.organization?.series?.title || r.series_name || ''}, {label:'Season',render:r=>r.season_number || ''},
+    {label:'Episode',render:r=>r.episode_number || ''}, {label:'Published',render:r=>r.is_published?'Yes':'No'}
+  ], state.content, r => `<button class="danger" onclick="archiveContent('${r.id}')">Archive</button>`);
+}
+
+window.archiveContent = async (id) => {
+  if (!confirm('Archive this content?')) return;
+  try { await api(`/api/admin/content/${id}/archive`, { method:'PATCH', headers:authHeaders() }); await loadContent(); status('uploadStatus','Content archived'); }
+  catch (err) { status('uploadStatus', err.message, false); }
+};
+
+async function simplePost(formId, path, statusId) {
+  try {
+    const body = formJson($(formId));
+    await api(path, { method:'POST', headers:authHeaders(), body:JSON.stringify(body) });
+    $(formId).reset();
+    await refreshAll();
+    status(statusId, 'Saved successfully');
+  } catch (err) { status(statusId, err.message, false); }
+}
+
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    const data = await api('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(formJson(e.target)) });
+    state.token = data.data.token; localStorage.setItem('pgkids_token', state.token); status('loginStatus','Login successful'); await bootstrap();
+  } catch (err) { status('loginStatus', err.message, false); }
+});
+
+$('logoutBtn').addEventListener('click', () => { localStorage.removeItem('pgkids_token'); state.token=''; setAppVisible(false); });
+document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => openPanel(btn.dataset.panel)));
+
+$('planForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = formJson(e.target);
+  ['duration_days','stream_limit','trial_period_days'].forEach(k=>{ if(body[k]==='') delete body[k]; });
+  if(body.quality_limit==='') delete body.quality_limit;
+  const id = body.planId; delete body.planId;
+  try {
+    await api(id ? `/api/plans/admin/${id}` : '/api/plans/admin', { method:id?'PATCH':'POST', headers:authHeaders(), body:JSON.stringify(body) });
+    e.target.reset(); await loadPlans(); status('planStatus','Plan saved successfully');
+  } catch (err) { status('planStatus', err.message, false); }
+});
+$('resetPlanForm').onclick = () => { $('planForm').reset(); $('planForm').elements.planId.value=''; status('planStatus',''); };
+$('refreshPlans').onclick = loadPlans;
+
+$('uploadForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/admin/content/upload');
+  xhr.setRequestHeader('Authorization', `Bearer ${state.token}`);
+  xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) $('uploadProgress').value = Math.round(ev.loaded / ev.total * 100); };
+  xhr.onload = async () => {
+    try {
+      const data = JSON.parse(xhr.responseText || '{}');
+      if (xhr.status >= 400 || data.success === false) throw new Error(data.message || 'Upload failed');
+      status('uploadStatus','Content uploaded successfully'); $('uploadForm').reset(); $('uploadProgress').value = 0; await loadContent(); await loadOrganization();
+    } catch (err) { status('uploadStatus', err.message, false); }
+  };
+  xhr.onerror = () => status('uploadStatus','Network error during upload', false);
+  xhr.send(new FormData(e.target));
+});
+$('refreshContent').onclick = loadContent;
+
+$('categoryForm').addEventListener('submit', e => { e.preventDefault(); simplePost('categoryForm','/api/admin/organization/categories','organizationStatus'); });
+$('seriesForm').addEventListener('submit', e => { e.preventDefault(); simplePost('seriesForm','/api/admin/organization/series','organizationStatus'); });
+$('seasonForm').addEventListener('submit', e => { e.preventDefault(); simplePost('seasonForm','/api/admin/organization/seasons','organizationStatus'); });
+$('episodeForm').addEventListener('submit', e => { e.preventDefault(); simplePost('episodeForm','/api/admin/organization/episodes','organizationStatus'); });
+$('assignForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = formJson(e.target); const id = body.contentId; delete body.contentId;
+  try { await api(`/api/admin/organization/content/${id}/assignment`, { method:'PATCH', headers:authHeaders(), body:JSON.stringify(body) }); await refreshAll(); status('organizationStatus','Content assignment updated'); }
+  catch (err) { status('organizationStatus', err.message, false); }
+});
+
+window.categoryStatus = async (id, is_active) => { try { await api(`/api/admin/organization/categories/${id}/status`, { method:'PATCH', headers:authHeaders(), body:JSON.stringify({is_active}) }); await loadOrganization(); } catch(e){ status('organizationStatus', e.message, false); } };
+window.seriesStatus = async (id, is_active) => { try { await api(`/api/admin/organization/series/${id}/status`, { method:'PATCH', headers:authHeaders(), body:JSON.stringify({is_active}) }); await loadOrganization(); } catch(e){ status('organizationStatus', e.message, false); } };
+window.seasonStatus = async (id, is_active) => { try { await api(`/api/admin/organization/seasons/${id}/status`, { method:'PATCH', headers:authHeaders(), body:JSON.stringify({is_active}) }); await loadOrganization(); } catch(e){ status('organizationStatus', e.message, false); } };
+
+$('contentTypeSelect')?.addEventListener('change', updateUploadHelp);
+$('mediaFileInput')?.addEventListener('change', (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return updateUploadHelp();
+  const detected = detectMediaTypeFromName(file.name);
+  if (!detected) {
+    status('uploadHelp', 'Unsupported file extension. Use video: mp4/mov/webm/mkv or audio: mp3/wav/m4a/aac.', false);
+    return;
+  }
+  const typeSelect = $('contentTypeSelect');
+  if (typeSelect && typeSelect.value !== detected) {
+    typeSelect.value = detected;
+    status('uploadHelp', `Auto-selected ${detected} based on file extension: ${file.name}`, true);
+  } else {
+    updateUploadHelp();
+  }
+});
+updateUploadHelp();
+
+bootstrap();
+</script>
+</body>
+</html>

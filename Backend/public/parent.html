@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PG Kids Parent Portal</title>
+  <style>
+    :root { color-scheme: dark; --bg:#071326; --card:#101f3a; --line:#243a62; --text:#f5f7fb; --muted:#a9b6ca; --accent:#42d7d0; --danger:#ff6b6b; --ok:#7bd88f; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, Tahoma, Arial, sans-serif; background: radial-gradient(circle at top left,#17335f,var(--bg)); color:var(--text); }
+    header, main { width:min(1120px, 94vw); margin:auto; }
+    header { padding:24px 0; display:flex; justify-content:space-between; align-items:center; }
+    .card { background:rgba(16,31,58,.92); border:1px solid var(--line); border-radius:18px; padding:18px; margin:14px 0; }
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:12px; }
+    .col-3 { grid-column: span 3; } .col-4 { grid-column: span 4; } .col-6 { grid-column: span 6; } .col-12 { grid-column: span 12; }
+    label { display:grid; gap:6px; color:var(--muted); font-size:13px; }
+    input, select { width:100%; border:1px solid var(--line); border-radius:12px; padding:11px 12px; background:#071326; color:var(--text); }
+    button { border:0; border-radius:12px; padding:11px 14px; background:var(--accent); color:#02131b; font-weight:800; cursor:pointer; }
+    button.secondary { background:#253b63; color:var(--text); }
+    .status { color:var(--muted); min-height:22px; } .ok { color:var(--ok); } .bad { color:var(--danger); }
+    table { width:100%; border-collapse:collapse; direction:ltr; } th,td { text-align:left; padding:10px; border-bottom:1px solid var(--line); }
+    a { color:var(--accent); }
+    .hidden { display:none; }
+    @media (max-width:800px){ .col-3,.col-4,.col-6 { grid-column:span 12; } table{display:block; overflow-x:auto;} }
+  </style>
+</head>
+<body>
+  <header>
+    <div><h1>PG Kids Parent Portal</h1><p class="status">إدارة ملفات الأطفال، الاشتراك، وتصفح المحتوى</p></div>
+    <button id="logoutBtn" class="secondary">Logout</button>
+  </header>
+  <main>
+    <section class="card" id="loginCard">
+      <h2>Login</h2>
+      <form id="loginForm" class="grid">
+        <label class="col-4">Email<input name="email" type="email" required /></label>
+        <label class="col-4">Password<input name="password" type="password" required /></label>
+        <div class="col-4" style="align-self:end"><button type="submit">Login</button></div>
+      </form>
+      <p id="loginStatus" class="status"></p>
+    </section>
+
+    <section id="app" class="hidden">
+      <section class="card">
+        <h2>Subscription</h2>
+        <p id="subscriptionStatus" class="status"></p>
+        <form id="subscriptionForm" class="grid">
+          <label class="col-6">Available Plans<select name="planId" id="plansSelect" required></select></label>
+          <div class="col-6" style="align-self:end"><button type="submit">Activate Plan</button></div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Child Profiles</h2>
+        <form id="profileForm" class="grid">
+          <label class="col-4">Child Name<input name="name" required /></label>
+          <label class="col-4">Date of Birth<input name="date_of_birth" type="date" required /></label>
+          <div class="col-4" style="align-self:end"><button type="submit">Create Profile</button></div>
+        </form>
+        <div id="profilesTable"></div>
+      </section>
+
+      <section class="card">
+        <h2>Browse Content</h2>
+        <form id="browseForm" class="grid">
+          <label class="col-4">Child Profile<select name="profileId" id="profileSelect" required></select></label>
+          <label class="col-4">Keyword<input name="keyword" /></label>
+          <label class="col-4">Type<select name="type"><option value="">All</option><option value="video">Video</option><option value="audio">Audio</option></select></label>
+          <div class="col-12"><button type="submit">Browse</button></div>
+        </form>
+        <p id="browseStatus" class="status"></p>
+        <div id="contentTable"></div>
+      </section>
+    </section>
+  </main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>'\"]/g, (ch) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[ch]));
+let token = localStorage.getItem('pgkids_parent_token') || '';
+let profiles = [];
+
+const headers = () => ({ 'Content-Type':'application/json', Authorization:`Bearer ${token}` });
+const formJson = (form) => Object.fromEntries(new FormData(form).entries());
+const status = (id, msg, ok=true) => { const el=$(id); el.textContent=msg || ''; el.className=`status ${ok?'ok':'bad'}`; };
+
+async function api(path, options={}) {
+  const res = await fetch(path, options);
+  const data = await res.json().catch(() => ({ success:false, message:'Invalid server response' }));
+  if (!res.ok || data.success === false) throw new Error(data.message || 'Request failed');
+  return data;
+}
+
+function renderTable(target, columns, rows, action) {
+  if (!rows.length) { $(target).innerHTML = '<p class="status">No records yet.</p>'; return; }
+  const head = columns.map(c=>`<th>${escapeHtml(c.label)}</th>`).join('') + (action ? '<th>Action</th>' : '');
+  const body = rows.map(r=>`<tr>${columns.map(c=>`<td>${escapeHtml(c.render ? c.render(r) : r[c.key])}</td>`).join('')}${action ? `<td>${action(r)}</td>` : ''}</tr>`).join('');
+  $(target).innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function setVisible(authenticated) {
+  $('loginCard').classList.toggle('hidden', authenticated);
+  $('app').classList.toggle('hidden', !authenticated);
+}
+
+async function loadPlans() {
+  const data = await api('/api/plans/active');
+  $('plansSelect').innerHTML = data.data.map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} - ${escapeHtml(p.price)} / ${escapeHtml(p.billing_cycle)}</option>`).join('');
+}
+
+async function loadSubscription() {
+  const data = await api('/api/subscriptions/me', { headers: headers() });
+  status('subscriptionStatus', data.data?.plan ? `Active: ${data.data.plan.name} until ${data.data.end_date}` : 'No active subscription');
+}
+
+async function loadProfiles() {
+  const data = await api('/api/profiles', { headers: headers() });
+  profiles = data.data || [];
+  $('profileSelect').innerHTML = profiles.map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('');
+  renderTable('profilesTable', [
+    { label:'Name', key:'name' },
+    { label:'Date of Birth', key:'date_of_birth' },
+  ], profiles);
+}
+
+async function bootstrap() {
+  if (!token) return setVisible(false);
+  try {
+    await api('/api/auth/me', { headers: headers() });
+    setVisible(true);
+    await Promise.all([loadPlans(), loadSubscription(), loadProfiles()]);
+  } catch (err) {
+    localStorage.removeItem('pgkids_parent_token'); token=''; setVisible(false);
+  }
+}
+
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    const data = await api('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(formJson(e.target)) });
+    token = data.data.token;
+    localStorage.setItem('pgkids_parent_token', token);
+    await bootstrap();
+  } catch (err) { status('loginStatus', err.message, false); }
+});
+
+$('logoutBtn').onclick = () => { localStorage.removeItem('pgkids_parent_token'); token=''; setVisible(false); };
+
+$('subscriptionForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/subscriptions/activate', { method:'POST', headers:headers(), body:JSON.stringify(formJson(e.target)) });
+    await loadSubscription();
+  } catch (err) { status('subscriptionStatus', err.message, false); }
+});
+
+$('profileForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/profiles', { method:'POST', headers:headers(), body:JSON.stringify(formJson(e.target)) });
+    e.target.reset();
+    await loadProfiles();
+  } catch (err) { status('browseStatus', err.message, false); }
+});
+
+window.playContent = async (contentId, profileId) => {
+  try {
+    const response = await fetch(`/api/content/${contentId}/playback?profileId=${encodeURIComponent(profileId)}`, { headers: { Authorization:`Bearer ${token}` } });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({ message:'Unable to play content' }));
+      throw new Error(data.message || 'Unable to play content');
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (err) { status('browseStatus', err.message, false); }
+};
+
+$('browseForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    const params = new URLSearchParams(formJson(e.target));
+    const data = await api(`/api/content/browse?${params}`, { headers: headers() });
+    renderTable('contentTable', [
+      { label:'Title', key:'title' },
+      { label:'Type', key:'type' },
+      { label:'Age', key:'age_group' },
+      { label:'Category', render:r=>r.organization?.category?.name || r.category || '' },
+      { label:'Access', key:'access_level' },
+    ], data.data, r=>`<button type="button" onclick="playContent('${r.id}', '${params.get('profileId')}')">Play</button>`);
+    status('browseStatus', data.message);
+  } catch (err) { status('browseStatus', err.message, false); }
+});
+
+bootstrap();
+</script>
+</body>
+</html>
