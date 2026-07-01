@@ -20,6 +20,7 @@ A full-stack, role-based platform for managing and consuming children’s video 
 - [API Surface (High Level)](#api-surface-high-level)
 - [Security & Safety Highlights](#security--safety-highlights)
 - [Troubleshooting](#troubleshooting)
+- [Contributors](#contributors)
 - [GitHub Publishing Workflow](#github-publishing-workflow)
 
 ---
@@ -312,6 +313,17 @@ For phase-level backend details, see:
 
 - Change `PORT` in `Backend/.env`
 - Or terminate the conflicting process
+
+---
+
+## Contributors
+
+Special thanks to the team members who contributed to building this project:
+
+- **[Sameer Shawareb](https://github.com/SameerShawareb)**
+- **[Fadi Abbasi](https://github.com/f4di1)**
+- **Wadeesmirat**
+- **[Deya Alaydi](https://github.com/aiden7di7-svg)**
 
 ---
 
